@@ -17,3 +17,9 @@ dist/
 build/
 coverage/
 *.log
+
+# .NET
+bin/
+obj/
+[Tt]est[Rr]esults/
+*.user

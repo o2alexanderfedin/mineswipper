@@ -1,6 +1,11 @@
 # mineswipper
 
-Minesweeper implementation.
+Interview exercises in C# (.NET 10).
+
+| Project | Contents |
+|---------|----------|
+| `src/RottingOranges` | Multi-source BFS solution to "Rotting Oranges" (LeetCode 994) |
+| `tests/RottingOranges.Tests` | xUnit specification for the above |
 
 ## Setup
 
@@ -8,7 +13,13 @@ Minesweeper implementation.
 git clone https://github.com/o2alexanderfedin/mineswipper.git
 cd mineswipper
 git config core.hooksPath .githooks   # enable branch-protection hooks
+
+dotnet build
+dotnet test
 ```
+
+Every project inherits `Directory.Build.props`: nullable reference types enabled and
+all warnings treated as errors.
 
 ## Development
 
