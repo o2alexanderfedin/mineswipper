@@ -4,9 +4,13 @@ using System.Text;
 using Interviews.RottingOranges;
 using Interviews.RottingOranges.Demo;
 
-const int Rows = 10;
-const int Columns = 20;
+const int Rows = 20;
+const int Columns = 50;
 const int RottenCount = 1;
+
+// Roughly an eighth of the field. Far below the percolation threshold, so the field almost
+// always stays connected - but small pockets do get sealed off, which is the interesting part.
+const int HoleCount = (Rows * Columns) / 8;
 
 TimeSpan frameDelay = TimeSpan.FromMilliseconds(120);
 
@@ -18,7 +22,8 @@ Random random = args.Length > 0 && int.TryParse(args[0], NumberStyles.Integer, C
     ? new Random(seed)
     : Random.Shared;
 
-int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, random);
+int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, HoleCount, random);
+int orangeCount = (Rows * Columns) - HoleCount;
 
 bool animate = !Console.IsOutputRedirected;
 
@@ -28,12 +33,11 @@ if (animate)
 }
 
 int minutes;
+AnimatedConsoleObserver observer = new(frameDelay, animate);
 
 try
 {
-    minutes = await RottingOrangesSolver.OrangesRottingAsync(
-        field,
-        new AnimatedConsoleObserver(frameDelay, animate));
+    minutes = await RottingOrangesSolver.OrangesRottingAsync(field, observer);
 }
 finally
 {
@@ -44,6 +48,7 @@ finally
 }
 
 Console.WriteLine();
+Console.WriteLine($"Field: {Rows}x{Columns} with {HoleCount} holes, {orangeCount} oranges");
 Console.WriteLine(minutes < 0
-    ? "Result: -1 (fresh oranges remain that the rot can never reach)"
-    : $"Result: all {Rows}x{Columns} oranges rotted in {minutes} minutes");
+    ? $"Result: -1 ({observer.FreshRemaining} orange(s) sealed off by holes, unreachable by rot)"
+    : $"Result: all {orangeCount} oranges rotted in {minutes} minutes");

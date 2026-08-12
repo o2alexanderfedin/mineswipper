@@ -7,12 +7,15 @@ public static class GridFactory
 {
     /// <summary>
     /// Returns a field of fresh oranges with <paramref name="rottenCount"/> of them replaced by
-    /// rotten ones at distinct random positions.
+    /// rotten ones and <paramref name="holeCount"/> replaced by holes, all at distinct random
+    /// positions.
     /// </summary>
     /// <param name="rows">The number of rows. Must be positive.</param>
     /// <param name="columns">The number of columns. Must be positive.</param>
-    /// <param name="rottenCount">
-    /// How many oranges start out rotten. Must be between zero and <c>rows * columns</c>.
+    /// <param name="rottenCount">How many oranges start out rotten.</param>
+    /// <param name="holeCount">
+    /// How many cells are empty. Rot cannot pass through a hole, so enough of them will strand
+    /// oranges the rot can never reach.
     /// </param>
     /// <param name="random">
     /// The source of randomness. Seed it to reproduce a particular field.
@@ -20,15 +23,32 @@ public static class GridFactory
     /// <returns>A grid of <see cref="CellState"/> values encoded as integers.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="random"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// A dimension is not positive, or <paramref name="rottenCount"/> does not fit the field.
+    /// A dimension is not positive, a count is negative, or the counts together do not fit
+    /// the field.
     /// </exception>
-    public static int[][] CreateRandomField(int rows, int columns, int rottenCount, Random random)
+    public static int[][] CreateRandomField(
+        int rows,
+        int columns,
+        int rottenCount,
+        int holeCount,
+        Random random)
     {
         ArgumentNullException.ThrowIfNull(random);
         ArgumentOutOfRangeException.ThrowIfLessThan(rows, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(columns, 1);
         ArgumentOutOfRangeException.ThrowIfNegative(rottenCount);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(rottenCount, rows * columns);
+        ArgumentOutOfRangeException.ThrowIfNegative(holeCount);
+
+        int cellCount = rows * columns;
+
+        if (rottenCount + (long)holeCount > cellCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(holeCount),
+                holeCount,
+                $"A {rows}x{columns} field holds {cellCount} cells, which cannot fit " +
+                $"{rottenCount} rotten oranges and {holeCount} holes.");
+        }
 
         int[][] grid = new int[rows][];
 
@@ -39,8 +59,7 @@ public static class GridFactory
         }
 
         // Partial Fisher-Yates over the flattened cell indices: draws distinct positions
-        // without ever retrying a collision.
-        int cellCount = rows * columns;
+        // without ever retrying a collision, so rotten oranges and holes never overlap.
         int[] positions = new int[cellCount];
 
         for (int i = 0; i < cellCount; i++)
@@ -48,15 +67,37 @@ public static class GridFactory
             positions[i] = i;
         }
 
+        int drawn = 0;
+
         for (int i = 0; i < rottenCount; i++)
         {
-            int pick = random.Next(i, cellCount);
-            (positions[i], positions[pick]) = (positions[pick], positions[i]);
+            Place(grid, positions, drawn++, cellCount, columns, random, CellState.Rotten);
+        }
 
-            int chosen = positions[i];
-            grid[chosen / columns][chosen % columns] = (int)CellState.Rotten;
+        for (int i = 0; i < holeCount; i++)
+        {
+            Place(grid, positions, drawn++, cellCount, columns, random, CellState.Empty);
         }
 
         return grid;
+    }
+
+    /// <summary>
+    /// Draws the next unused position and writes <paramref name="state"/> into it.
+    /// </summary>
+    private static void Place(
+        int[][] grid,
+        int[] positions,
+        int drawn,
+        int cellCount,
+        int columns,
+        Random random,
+        CellState state)
+    {
+        int pick = random.Next(drawn, cellCount);
+        (positions[drawn], positions[pick]) = (positions[pick], positions[drawn]);
+
+        int chosen = positions[drawn];
+        grid[chosen / columns][chosen % columns] = (int)state;
     }
 }
