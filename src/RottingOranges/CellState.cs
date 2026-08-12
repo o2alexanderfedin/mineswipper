@@ -7,7 +7,7 @@ namespace Interviews.RottingOranges;
 /// The underlying values match the integer encoding used by the problem statement, so an
 /// <c>int[][]</c> grid converts to <see cref="CellState"/> by a direct cast once validated.
 /// </remarks>
-public enum CellState
+public enum CellState: int
 {
     /// <summary>An empty cell. Rot cannot pass through it.</summary>
     Empty = 0,

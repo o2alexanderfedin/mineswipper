@@ -34,18 +34,28 @@ public static class RottingOrangesSolver
     /// <exception cref="ArgumentOutOfRangeException">
     /// A cell holds a value that is not a defined <see cref="CellState"/>.
     /// </exception>
-    public static int OrangesRotting(int[][] grid) => SpreadRot(CopyAndValidate(grid));
+    /// <param name="trace">
+    /// When supplied, receives a snapshot of the field before the first wave and after every
+    /// wave of rot. Pass <see langword="null"/> (the default) to run without tracing.
+    /// </param>
+    public static int OrangesRotting(int[][] grid, TextWriter? trace = null) =>
+        SpreadRot(CopyAndValidate(grid), trace);
 
     /// <summary>
     /// Runs the multi-source breadth-first search over a grid the caller owns exclusively;
     /// cells are marked <see cref="CellState.Rotten"/> in place as the rot spreads.
     /// </summary>
-    private static int SpreadRot(CellState[][] cells)
+    /// <remarks>
+    /// The queue is drained one whole wave at a time - every cell that rots during the same
+    /// minute - so the elapsed minutes are the number of waves and the field can be rendered
+    /// at each step.
+    /// </remarks>
+    private static int SpreadRot(CellState[][] cells, TextWriter? trace)
     {
         int rows = cells.Length;
         int columns = cells[0].Length;
 
-        Queue<(int Row, int Column, int Minute)> frontier = new();
+        Queue<(int Row, int Column)> frontier = new();
         int freshCount = 0;
 
         for (int row = 0; row < rows; row++)
@@ -55,7 +65,7 @@ public static class RottingOrangesSolver
                 switch (cells[row][column])
                 {
                     case CellState.Rotten:
-                        frontier.Enqueue((row, column, 0));
+                        frontier.Enqueue((row, column));
                         break;
                     case CellState.Fresh:
                         freshCount++;
@@ -68,35 +78,77 @@ public static class RottingOrangesSolver
         }
 
         int minutes = 0;
+        WriteSnapshot(trace, minutes, freshCount, cells, isInitial: true);
 
-        while (frontier.Count > 0)
+        while (frontier.Count > 0 && freshCount > 0)
         {
-            (int row, int column, int minute) = frontier.Dequeue();
-            minutes = Math.Max(minutes, minute);
+            // Fix the wave boundary before spreading: anything enqueued below rots next minute.
+            int waveSize = frontier.Count;
+            bool anyOrangeRotted = false;
 
-            foreach ((int rowOffset, int columnOffset) in NeighbourOffsets)
+            for (int i = 0; i < waveSize; i++)
             {
-                int neighbourRow = row + rowOffset;
-                int neighbourColumn = column + columnOffset;
+                (int row, int column) = frontier.Dequeue();
 
-                if (neighbourRow < 0 || neighbourRow >= rows ||
-                    neighbourColumn < 0 || neighbourColumn >= columns)
+                foreach ((int rowOffset, int columnOffset) in NeighbourOffsets)
                 {
-                    continue;
-                }
+                    int neighbourRow = row + rowOffset;
+                    int neighbourColumn = column + columnOffset;
 
-                if (cells[neighbourRow][neighbourColumn] != CellState.Fresh)
-                {
-                    continue;
-                }
+                    if (neighbourRow < 0 || neighbourRow >= rows ||
+                        neighbourColumn < 0 || neighbourColumn >= columns)
+                    {
+                        continue;
+                    }
 
-                cells[neighbourRow][neighbourColumn] = CellState.Rotten;
-                freshCount--;
-                frontier.Enqueue((neighbourRow, neighbourColumn, minute + 1));
+                    if (cells[neighbourRow][neighbourColumn] != CellState.Fresh)
+                    {
+                        continue;
+                    }
+
+                    cells[neighbourRow][neighbourColumn] = CellState.Rotten;
+                    freshCount--;
+                    anyOrangeRotted = true;
+                    frontier.Enqueue((neighbourRow, neighbourColumn));
+                }
             }
+
+            // A wave that rots nothing leaves the frontier empty, so it is the last one either
+            // way. Stopping here keeps it from counting as a minute or repeating the snapshot.
+            if (!anyOrangeRotted)
+            {
+                break;
+            }
+
+            minutes++;
+            WriteSnapshot(trace, minutes, freshCount, cells, isInitial: false);
         }
 
         return freshCount == 0 ? minutes : -1;
+    }
+
+    /// <summary>
+    /// Renders the field to <paramref name="trace"/>, preceded by a heading naming the minute
+    /// and how many fresh oranges remain. Does nothing when no writer was supplied.
+    /// </summary>
+    private static void WriteSnapshot(
+        TextWriter? trace,
+        int minute,
+        int freshCount,
+        CellState[][] cells,
+        bool isInitial)
+    {
+        if (trace is null)
+        {
+            return;
+        }
+
+        string heading = isInitial ? $"Minute {minute} (initial)" : $"Minute {minute}";
+        string remaining = freshCount == 1 ? "1 fresh orange left" : $"{freshCount} fresh oranges left";
+
+        trace.WriteLine($"{heading} - {remaining}:");
+        trace.WriteLine(GridFormatter.Format(cells));
+        trace.WriteLine();
     }
 
     /// <summary>
