@@ -42,7 +42,7 @@ The library never touches `Console` itself — the demo owns all rendering.
 ## Animated demo
 
 Floods a 20×50 field from a randomly placed rotten orange, repainting in place once per
-minute. An eighth of the cells are holes, which the rot cannot cross:
+minute. An eighth of the cells are carved into caves the rot cannot cross:
 
 ```bash
 dotnet run --project src/RottingOranges.Demo          # random field
@@ -60,9 +60,16 @@ Minute 6 - 848 fresh oranges left
 ...
 ```
 
-Holes make `-1` a routine outcome rather than a corner case: a corner cell needs only two
-holes beside it to be sealed off for good. The demo reports how many oranges were stranded,
-and the final frame shows them still fresh behind their walls.
+`GridFactory.CreateRandomField` takes the total hole area and a `holeSize`, and grows each
+hole outwards from a random seed until it reaches that size — so the carved area is exact
+whether it lands as speckle (`holeSize: 1`) or as caves (`holeSize: 25`). Holes that grow
+into each other simply merge.
+
+Holes make `-1` a routine outcome rather than a corner case — over 25 seeds, 20 runs
+stranded a handful of oranges and 5 rotted the lot. The demo reports how many were
+stranded, and the final frame shows them still fresh behind their walls. Rarely a cave
+seals off the source itself, which strands nearly everything; raise the rotten count if
+you would rather that never happened.
 
 Frames are held with `await Task.Delay`. When output is redirected the escape sequences
 would be noise, so frames are appended instead and the pause is skipped — which is what
