@@ -6,28 +6,35 @@ using Humanizer;
 using Interviews.RottingOranges;
 using Interviews.RottingOranges.Demo;
 
-const int Rows = 20;
-const int Columns = 50;
 const int RottenCount = 1;
+
+// The frame is a legend line, a heading and a blank line above the field, then a blank line
+// and two summary lines below it, plus one spare so the shell prompt does not scroll the
+// last frame away.
+const int ReservedLines = 7;
+
+const int HoleSize = 10;
+
+// The field is drawn with emoji, which a console using a legacy code page would mangle.
+Console.OutputEncoding = Encoding.UTF8;
+
+// Fill the window. Redirected output has no window to measure, so it falls back to 80x24.
+(int Rows, int Columns) = ConsoleField.Measure(ReservedLines);
 
 // A quarter of the field, carved as many separate caves. Blobs that touch merge, so the
 // nominal size is deliberately well under what a cave ends up being: at this density these
 // settle at roughly a dozen holes averaging twice HoleSize.
-const int HoleCells = (Rows * Columns) / 4;
-const int HoleSize = 10;
+int holeCells = (Rows * Columns) / 4;
 
 TimeSpan frameDelay = 120.Milliseconds();
-
-// The field is drawn with emoji, which a console using a legacy code page would mangle.
-Console.OutputEncoding = Encoding.UTF8;
 
 // An optional seed makes a run reproducible: `dotnet run -- 1234`.
 Random random = args.Length > 0 && int.TryParse(args[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int seed)
     ? new Random(seed)
     : Random.Shared;
 
-int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, HoleCells, HoleSize, random);
-int orangeCount = (Rows * Columns) - HoleCells;
+int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, holeCells, HoleSize, random);
+int orangeCount = (Rows * Columns) - holeCells;
 
 bool animate = !Console.IsOutputRedirected;
 
@@ -52,7 +59,7 @@ finally
 }
 
 Console.WriteLine();
-Console.WriteLine($"Field: {Rows}x{Columns}, {HoleCells} cells carved into ~{HoleCells / HoleSize} holes, {orangeCount} oranges");
+Console.WriteLine($"Field: {Rows}x{Columns}, {holeCells} cells carved into holes, {orangeCount} oranges");
 Console.WriteLine(minutes < 0
     ? $"Result: -1 ({observer.FreshRemaining} orange(s) sealed off by holes, unreachable by rot)"
     : $"Result: all {orangeCount} oranges rotted in {minutes} minutes");

@@ -41,13 +41,27 @@ The library never touches `Console` itself — the demo owns all rendering.
 
 ## Animated demo
 
-Floods a 20×50 field from a randomly placed rotten orange, repainting in place once per
-minute. A quarter of the cells are carved into a dozen or so caves the rot cannot cross:
+Floods a randomly placed rotten orange across a field sized to fill your terminal,
+repainting in place once per minute. A quarter of the cells are carved into caves the rot
+cannot cross:
 
 ```bash
 dotnet run --project src/RottingOranges.Demo          # random field
 dotnet run --project src/RottingOranges.Demo -- 2024  # reproducible: seeds the field
 ```
+
+The field claims the whole window, minus the headings above it and the summary below.
+Cells are double-width emoji, so a column is two characters and the last one is left free —
+a cell straddling the right edge would wrap and knock every row below it out of place.
+Resize the terminal and rerun to get a different field:
+
+| Window | Field | Frames at 120 ms |
+|--------|-------|------------------|
+| 80×24  | 17×39 | 61 (~7 s) |
+| 120×40 | 33×59 | — |
+| 200×50 | 43×99 | 134 (~17 s) |
+
+Redirected output has no window to measure, so it falls back to 80×24.
 
 ```text
 Legend: ⬛ empty   🍊 fresh   🟤 rotten
