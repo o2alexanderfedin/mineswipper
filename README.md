@@ -41,8 +41,8 @@ The library never touches `Console` itself — the demo owns all rendering.
 
 ## Animated demo
 
-Floods a 10×20 field from a randomly placed rotten orange, repainting in place once per
-minute:
+Floods a 20×50 field from a randomly placed rotten orange, repainting in place once per
+minute. An eighth of the cells are holes, which the rot cannot cross:
 
 ```bash
 dotnet run --project src/RottingOranges.Demo          # random field
@@ -51,13 +51,18 @@ dotnet run --project src/RottingOranges.Demo -- 2024  # reproducible: seeds the 
 
 ```text
 Legend: ⬛ empty   🍊 fresh   🟤 rotten
-Minute 1 - 195 fresh oranges left
+Minute 6 - 848 fresh oranges left
 
-🍊🍊🍊🟤🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊
-🍊🍊🟤🟤🟤🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊
-🍊🍊🍊🟤🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊
+🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊⬛🍊🍊
+🍊⬛🍊🍊🍊🍊🍊🟤🟤🟤⬛🍊🍊⬛🍊🍊🍊🍊⬛🍊
+🍊🍊🍊🍊🍊🍊🟤🟤🟤🟤🟤⬛🍊⬛🍊🍊🍊🍊🍊🍊
+🍊🍊🍊🍊⬛🍊🍊🟤🟤🟤🍊🍊⬛🍊🍊🍊🍊🍊🍊🍊
 ...
 ```
+
+Holes make `-1` a routine outcome rather than a corner case: a corner cell needs only two
+holes beside it to be sealed off for good. The demo reports how many oranges were stranded,
+and the final frame shows them still fresh behind their walls.
 
 Frames are held with `await Task.Delay`. When output is redirected the escape sequences
 would be noise, so frames are appended instead and the pause is skipped — which is what

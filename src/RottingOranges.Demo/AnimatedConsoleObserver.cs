@@ -24,10 +24,18 @@ internal sealed class AnimatedConsoleObserver(TimeSpan delay, bool? animate = nu
 
     private readonly bool animate = animate ?? !Console.IsOutputRedirected;
 
+    /// <summary>
+    /// Fresh oranges left after the most recent wave. Once the search returns <c>-1</c>, these
+    /// are the ones the holes sealed off.
+    /// </summary>
+    public int FreshRemaining { get; private set; }
+
     /// <inheritdoc />
     public async ValueTask OnWaveAsync(Wave wave, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        FreshRemaining = wave.FreshRemaining;
 
         StringBuilder frame = new();
 
