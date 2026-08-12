@@ -8,9 +8,10 @@ const int Rows = 20;
 const int Columns = 50;
 const int RottenCount = 1;
 
-// Roughly an eighth of the field. Far below the percolation threshold, so the field almost
-// always stays connected - but small pockets do get sealed off, which is the interesting part.
-const int HoleCount = (Rows * Columns) / 8;
+// Roughly an eighth of the field, carved as a handful of sizeable caves rather than
+// speckle, so the rot has to flow around real obstacles.
+const int HoleCells = (Rows * Columns) / 8;
+const int HoleSize = 25;
 
 TimeSpan frameDelay = TimeSpan.FromMilliseconds(120);
 
@@ -22,8 +23,8 @@ Random random = args.Length > 0 && int.TryParse(args[0], NumberStyles.Integer, C
     ? new Random(seed)
     : Random.Shared;
 
-int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, HoleCount, random);
-int orangeCount = (Rows * Columns) - HoleCount;
+int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, HoleCells, HoleSize, random);
+int orangeCount = (Rows * Columns) - HoleCells;
 
 bool animate = !Console.IsOutputRedirected;
 
@@ -48,7 +49,7 @@ finally
 }
 
 Console.WriteLine();
-Console.WriteLine($"Field: {Rows}x{Columns} with {HoleCount} holes, {orangeCount} oranges");
+Console.WriteLine($"Field: {Rows}x{Columns}, {HoleCells} cells carved into ~{HoleCells / HoleSize} holes, {orangeCount} oranges");
 Console.WriteLine(minutes < 0
     ? $"Result: -1 ({observer.FreshRemaining} orange(s) sealed off by holes, unreachable by rot)"
     : $"Result: all {orangeCount} oranges rotted in {minutes} minutes");
