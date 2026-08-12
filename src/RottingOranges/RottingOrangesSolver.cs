@@ -11,9 +11,27 @@ namespace Interviews.RottingOranges;
 /// </remarks>
 public static class RottingOrangesSolver
 {
-    /// <summary>Row/column deltas of the four orthogonally adjacent cells.</summary>
-    private static readonly (int Row, int Column)[] NeighbourOffsets =
+    /// <summary>Row/column deltas of the four cells sharing an edge.</summary>
+    private static readonly (int Row, int Column)[] OrthogonalOffsets =
         [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+    /// <summary>Row/column deltas of all eight surrounding cells.</summary>
+    private static readonly (int Row, int Column)[] DiagonalOffsets =
+        [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
+
+    /// <summary>Returns the neighbour deltas the given pattern spreads across.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="pattern"/> is not a defined <see cref="SpreadPattern"/>.
+    /// </exception>
+    private static (int Row, int Column)[] OffsetsFor(SpreadPattern pattern) => pattern switch
+    {
+        SpreadPattern.Orthogonal => OrthogonalOffsets,
+        SpreadPattern.Diagonal => DiagonalOffsets,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(pattern),
+            pattern,
+            "Unknown spread pattern."),
+    };
 
     /// <summary>
     /// Returns the number of minutes until no cell holds a fresh orange,
@@ -28,6 +46,10 @@ public static class RottingOrangesSolver
     /// Pass <see langword="null"/> (the default) to run the search without observation, in
     /// which case it never yields and completes synchronously.
     /// </param>
+    /// <param name="pattern">
+    /// Which neighbours the rot reaches each minute. Defaults to
+    /// <see cref="SpreadPattern.Orthogonal"/>, the original problem's rule.
+    /// </param>
     /// <param name="cancellationToken">Signals that the search should be abandoned.</param>
     /// <returns>
     /// The elapsed minutes, <c>0</c> when the grid starts with no fresh oranges, or
@@ -38,14 +60,16 @@ public static class RottingOrangesSolver
     /// <paramref name="grid"/> is empty, has a null or empty row, or is not rectangular.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// A cell holds a value that is not a defined <see cref="CellState"/>.
+    /// A cell holds a value that is not a defined <see cref="CellState"/>, or
+    /// <paramref name="pattern"/> is not a defined <see cref="SpreadPattern"/>.
     /// </exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static Task<int> OrangesRottingAsync(
         int[][] grid,
         IWaveObserver? observer = null,
+        SpreadPattern pattern = SpreadPattern.Orthogonal,
         CancellationToken cancellationToken = default) =>
-        SpreadRotAsync(CopyAndValidate(grid), observer, cancellationToken);
+        SpreadRotAsync(CopyAndValidate(grid), observer, OffsetsFor(pattern), cancellationToken);
 
     /// <summary>
     /// Runs the search, writing a snapshot of the field to <paramref name="trace"/> before the
@@ -53,6 +77,10 @@ public static class RottingOrangesSolver
     /// </summary>
     /// <param name="grid">The grid to solve. The caller's array is not modified.</param>
     /// <param name="trace">The destination for the snapshots.</param>
+    /// <param name="pattern">
+    /// Which neighbours the rot reaches each minute. Defaults to
+    /// <see cref="SpreadPattern.Orthogonal"/>.
+    /// </param>
     /// <param name="cancellationToken">Signals that the search should be abandoned.</param>
     /// <returns>The elapsed minutes, or <c>-1</c>. See the primary overload.</returns>
     /// <exception cref="ArgumentNullException">
@@ -61,8 +89,9 @@ public static class RottingOrangesSolver
     public static Task<int> OrangesRottingAsync(
         int[][] grid,
         TextWriter trace,
+        SpreadPattern pattern = SpreadPattern.Orthogonal,
         CancellationToken cancellationToken = default) =>
-        OrangesRottingAsync(grid, new TextWriterWaveObserver(trace), cancellationToken);
+        OrangesRottingAsync(grid, new TextWriterWaveObserver(trace), pattern, cancellationToken);
 
     /// <summary>
     /// Runs the multi-source breadth-first search over a grid the caller owns exclusively;
@@ -77,6 +106,7 @@ public static class RottingOrangesSolver
     private static async Task<int> SpreadRotAsync(
         CellState[][] cells,
         IWaveObserver? observer,
+        (int Row, int Column)[] neighbourOffsets,
         CancellationToken cancellationToken)
     {
         int rows = cells.Length;
@@ -127,7 +157,7 @@ public static class RottingOrangesSolver
             {
                 (int row, int column) = currentWave.Pop();
 
-                foreach ((int rowOffset, int columnOffset) in NeighbourOffsets)
+                foreach ((int rowOffset, int columnOffset) in neighbourOffsets)
                 {
                     int neighbourRow = row + rowOffset;
                     int neighbourColumn = column + columnOffset;

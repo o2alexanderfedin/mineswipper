@@ -104,7 +104,7 @@ public sealed class WaveObserverTests
             () => RottingOrangesSolver.OrangesRottingAsync(
                 GridFactory.CreateRandomField(10, 20, 1, 0, 1, new Random(1)),
                 observer,
-                cancellation.Token));
+                cancellationToken: cancellation.Token));
 
         Assert.Equal(2, waves);
     }
@@ -118,7 +118,7 @@ public sealed class WaveObserverTests
         RecordingObserver observer = new();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => RottingOrangesSolver.OrangesRottingAsync([[2, 1, 1]], observer, cancellation.Token));
+            () => RottingOrangesSolver.OrangesRottingAsync([[2, 1, 1]], observer, cancellationToken: cancellation.Token));
     }
 
     [Fact]

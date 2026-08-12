@@ -18,8 +18,19 @@ cancel it:
 int minutes = await RottingOrangesSolver.OrangesRottingAsync(grid, observer, cancellationToken);
 ```
 
-With no observer the search never yields and completes synchronously. Pass a
-`TextWriter` instead to append a snapshot per wave:
+With no observer the search never yields and completes synchronously.
+
+`SpreadPattern` controls which neighbours the rot reaches each minute — the four sharing an
+edge (the original rule, and the default), or all eight including the corners:
+
+```csharp
+await RottingOrangesSolver.OrangesRottingAsync(grid, pattern: SpreadPattern.Diagonal);
+```
+
+Diagonal spread strictly adds moves, so it never reaches less than orthogonal and never
+takes longer — it can cut across a corner gap that would otherwise stop the rot dead.
+
+Pass a `TextWriter` instead of an observer to append a snapshot per wave:
 
 ```csharp
 int minutes = await RottingOrangesSolver.OrangesRottingAsync(grid, Console.Out);
@@ -46,8 +57,16 @@ repainting in place once per minute. A quarter of the cells are carved into cave
 cannot cross:
 
 ```bash
-dotnet run --project src/RottingOranges.Demo          # random field
-dotnet run --project src/RottingOranges.Demo -- 2024  # reproducible: seeds the field
+dotnet run --project src/RottingOranges.Demo                   # random field
+dotnet run --project src/RottingOranges.Demo -- 2024           # reproducible: seeds the field
+dotnet run --project src/RottingOranges.Demo -- 2024 diagonal  # let the rot cut corners
+```
+
+The same field, both patterns — diagonal reaches past the walls that trap orthogonal rot:
+
+```text
+seed 3   orthogonal: -1 (452 oranges sealed off)   diagonal: -1 (5 sealed off)
+seed 11  orthogonal: -1 (1 orange sealed off)      diagonal: all 498 rotted in 42 minutes
 ```
 
 The field claims the whole window, minus the headings above it and the summary below.
