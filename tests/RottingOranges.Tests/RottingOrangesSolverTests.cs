@@ -1,7 +1,8 @@
 namespace Interviews.RottingOranges.Tests;
 
 /// <summary>
-/// Behavioural specification for <see cref="RottingOrangesSolver.OrangesRotting(int[][])"/>.
+/// Behavioural specification for
+/// <see cref="RottingOrangesSolver.OrangesRottingAsync(int[][], IWaveObserver, CancellationToken)"/>.
 /// </summary>
 public sealed class RottingOrangesSolverTests
 {
@@ -72,20 +73,20 @@ public sealed class RottingOrangesSolverTests
 
     [Theory]
     [MemberData(nameof(Grids))]
-    public void OrangesRotting_ReturnsExpectedMinutes(string scenario, int[][] grid, int expected)
+    public async Task OrangesRotting_ReturnsExpectedMinutes(string scenario, int[][] grid, int expected)
     {
-        int actual = RottingOrangesSolver.OrangesRotting(grid);
+        int actual = await RottingOrangesSolver.OrangesRottingAsync(grid);
 
         Assert.Equal(expected, actual);
         Assert.False(string.IsNullOrWhiteSpace(scenario));
     }
 
     [Fact]
-    public void OrangesRotting_DoesNotMutateCallerGrid()
+    public async Task OrangesRotting_DoesNotMutateCallerGrid()
     {
         int[][] grid = [[2, 1, 1], [1, 1, 0], [0, 1, 1]];
 
-        _ = RottingOrangesSolver.OrangesRotting(grid);
+        _ = await RottingOrangesSolver.OrangesRottingAsync(grid);
 
         Assert.Equal([2, 1, 1], grid[0]);
         Assert.Equal([1, 1, 0], grid[1]);
@@ -93,7 +94,7 @@ public sealed class RottingOrangesSolverTests
     }
 
     [Fact]
-    public void OrangesRotting_HandlesLargeGridWithinLinearTime()
+    public async Task OrangesRotting_HandlesLargeGridWithinLinearTime()
     {
         const int size = 500;
         int[][] grid = new int[size][];
@@ -106,52 +107,52 @@ public sealed class RottingOrangesSolverTests
         grid[0][0] = (int)CellState.Rotten;
 
         // Rot spreads by Manhattan distance from the single corner source.
-        Assert.Equal(((size - 1) * 2), RottingOrangesSolver.OrangesRotting(grid));
+        Assert.Equal((size - 1) * 2, await RottingOrangesSolver.OrangesRottingAsync(grid));
     }
 
     [Fact]
-    public void OrangesRotting_ThrowsOnNullGrid()
+    public async Task OrangesRotting_ThrowsOnNullGrid()
     {
-        Assert.Throws<ArgumentNullException>(() => RottingOrangesSolver.OrangesRotting(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => RottingOrangesSolver.OrangesRottingAsync(null!));
     }
 
     [Fact]
-    public void OrangesRotting_ThrowsOnNullRow()
+    public async Task OrangesRotting_ThrowsOnNullRow()
     {
         int[][] grid = [[0, 1], null!];
 
-        Assert.Throws<ArgumentException>(() => RottingOrangesSolver.OrangesRotting(grid));
+        await Assert.ThrowsAsync<ArgumentException>(() => RottingOrangesSolver.OrangesRottingAsync(grid));
     }
 
     [Fact]
-    public void OrangesRotting_ThrowsOnEmptyGrid()
+    public async Task OrangesRotting_ThrowsOnEmptyGrid()
     {
-        Assert.Throws<ArgumentException>(() => RottingOrangesSolver.OrangesRotting([]));
+        await Assert.ThrowsAsync<ArgumentException>(() => RottingOrangesSolver.OrangesRottingAsync([]));
     }
 
     [Fact]
-    public void OrangesRotting_ThrowsOnEmptyRow()
+    public async Task OrangesRotting_ThrowsOnEmptyRow()
     {
         int[][] grid = [[]];
 
-        Assert.Throws<ArgumentException>(() => RottingOrangesSolver.OrangesRotting(grid));
+        await Assert.ThrowsAsync<ArgumentException>(() => RottingOrangesSolver.OrangesRottingAsync(grid));
     }
 
     [Fact]
-    public void OrangesRotting_ThrowsOnRaggedGrid()
+    public async Task OrangesRotting_ThrowsOnRaggedGrid()
     {
         int[][] grid = [[1, 2], [1]];
 
-        Assert.Throws<ArgumentException>(() => RottingOrangesSolver.OrangesRotting(grid));
+        await Assert.ThrowsAsync<ArgumentException>(() => RottingOrangesSolver.OrangesRottingAsync(grid));
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(3)]
-    public void OrangesRotting_ThrowsOnUnknownCellValue(int value)
+    public async Task OrangesRotting_ThrowsOnUnknownCellValue(int value)
     {
         int[][] grid = [[(int)CellState.Rotten, value]];
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => RottingOrangesSolver.OrangesRotting(grid));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => RottingOrangesSolver.OrangesRottingAsync(grid));
     }
 }

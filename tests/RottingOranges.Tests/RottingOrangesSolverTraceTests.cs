@@ -2,14 +2,14 @@ namespace Interviews.RottingOranges.Tests;
 
 /// <summary>
 /// Specification for the per-wave field snapshots written by
-/// <see cref="RottingOrangesSolver.OrangesRotting(int[][], TextWriter)"/>.
+/// <see cref="RottingOrangesSolver.OrangesRottingAsync(int[][], TextWriter, CancellationToken)"/>.
 /// </summary>
 public sealed class RottingOrangesSolverTraceTests
 {
-    private static (int Minutes, string Trace) Run(int[][] grid)
+    private static async Task<(int Minutes, string Trace)> RunAsync(int[][] grid)
     {
-        using StringWriter writer = new();
-        int minutes = RottingOrangesSolver.OrangesRotting(grid, writer);
+        await using StringWriter writer = new();
+        int minutes = await RottingOrangesSolver.OrangesRottingAsync(grid, writer);
         return (minutes, writer.ToString());
     }
 
@@ -18,10 +18,10 @@ public sealed class RottingOrangesSolverTraceTests
         trace.Split("Minute ", StringSplitOptions.None).Length - 1;
 
     [Fact]
-    public void Trace_EmitsInitialSnapshotPlusOnePerWave()
+    public async Task Trace_EmitsInitialSnapshotPlusOnePerWave()
     {
         // Rot needs two waves to consume this grid.
-        (int minutes, string trace) = Run([[2, 1], [1, 1]]);
+        (int minutes, string trace) = await RunAsync([[2, 1], [1, 1]]);
 
         Assert.Equal(2, minutes);
         Assert.Equal(3, CountSnapshots(trace));
@@ -31,9 +31,9 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_RendersEachWaveOfTheField()
+    public async Task Trace_RendersEachWaveOfTheField()
     {
-        (int minutes, string trace) = Run([[2, 1, 1]]);
+        (int minutes, string trace) = await RunAsync([[2, 1, 1]]);
 
         Assert.Equal(2, minutes);
 
@@ -47,9 +47,9 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_ReportsRemainingFreshCount()
+    public async Task Trace_ReportsRemainingFreshCount()
     {
-        (_, string trace) = Run([[2, 1, 1]]);
+        (_, string trace) = await RunAsync([[2, 1, 1]]);
 
         Assert.Contains("Minute 0 (initial) - 2 fresh oranges left:", trace, StringComparison.Ordinal);
         Assert.Contains("Minute 1 - 1 fresh orange left:", trace, StringComparison.Ordinal);
@@ -57,10 +57,10 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_EmitsNoWaveWhenTheRotCannotSpreadAtAll()
+    public async Task Trace_EmitsNoWaveWhenTheRotCannotSpreadAtAll()
     {
         // The only fresh orange sits behind an empty cell, so the first wave rots nothing.
-        (int minutes, string trace) = Run([[2, 0, 1]]);
+        (int minutes, string trace) = await RunAsync([[2, 0, 1]]);
 
         Assert.Equal(-1, minutes);
         Assert.Equal(1, CountSnapshots(trace));
@@ -68,10 +68,10 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_OmitsTheFinalWaveThatChangesNothing()
+    public async Task Trace_OmitsTheFinalWaveThatChangesNothing()
     {
         // Rot spreads for four minutes, then stalls with one unreachable orange left.
-        (int minutes, string trace) = Run([[2, 1, 1], [0, 1, 1], [1, 0, 1]]);
+        (int minutes, string trace) = await RunAsync([[2, 1, 1], [0, 1, 1], [1, 0, 1]]);
 
         Assert.Equal(-1, minutes);
 
@@ -82,9 +82,9 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_NeverRepeatsTheSameFieldTwice()
+    public async Task Trace_NeverRepeatsTheSameFieldTwice()
     {
-        (_, string trace) = Run([[2, 1, 1], [0, 1, 1], [1, 0, 1]]);
+        (_, string trace) = await RunAsync([[2, 1, 1], [0, 1, 1], [1, 0, 1]]);
 
         string[] snapshots = trace
             .Split("Minute ", StringSplitOptions.RemoveEmptyEntries)
@@ -95,9 +95,9 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_EmitsOnlyTheInitialSnapshotWhenNothingCanRot()
+    public async Task Trace_EmitsOnlyTheInitialSnapshotWhenNothingCanRot()
     {
-        (int minutes, string trace) = Run([[2, 2], [2, 2]]);
+        (int minutes, string trace) = await RunAsync([[2, 2], [2, 2]]);
 
         Assert.Equal(0, minutes);
         Assert.Equal(1, CountSnapshots(trace));
@@ -105,40 +105,40 @@ public sealed class RottingOrangesSolverTraceTests
     }
 
     [Fact]
-    public void Trace_DoesNotAlterTheReturnedResult()
+    public async Task Trace_DoesNotAlterTheReturnedResult()
     {
         int[][] grid = [[2, 1, 1], [1, 1, 0], [0, 1, 1]];
 
-        using StringWriter writer = new();
+        await using StringWriter writer = new();
 
         Assert.Equal(
-            RottingOrangesSolver.OrangesRotting(grid),
-            RottingOrangesSolver.OrangesRotting(grid, writer));
+            await RottingOrangesSolver.OrangesRottingAsync(grid),
+            await RottingOrangesSolver.OrangesRottingAsync(grid, writer));
     }
 
     [Fact]
-    public void Trace_LeavesCallerGridUnchanged()
+    public async Task Trace_LeavesCallerGridUnchanged()
     {
         int[][] grid = [[2, 1], [1, 1]];
 
-        using StringWriter writer = new();
-        _ = RottingOrangesSolver.OrangesRotting(grid, writer);
+        await using StringWriter writer = new();
+        _ = await RottingOrangesSolver.OrangesRottingAsync(grid, writer);
 
         Assert.Equal([2, 1], grid[0]);
         Assert.Equal([1, 1], grid[1]);
     }
 
     [Fact]
-    public void OrangesRotting_WritesNothingWhenNoWriterSupplied()
+    public async Task OrangesRotting_WritesNothingWhenNoObserverSupplied()
     {
         // The default overload must stay silent - guards against a stray Console.WriteLine.
         TextWriter original = Console.Out;
-        using StringWriter captured = new();
+        await using StringWriter captured = new();
 
         try
         {
             Console.SetOut(captured);
-            _ = RottingOrangesSolver.OrangesRotting([[2, 1, 1], [1, 1, 0], [0, 1, 1]]);
+            _ = await RottingOrangesSolver.OrangesRottingAsync([[2, 1, 1], [1, 1, 0], [0, 1, 1]]);
         }
         finally
         {
@@ -146,5 +146,12 @@ public sealed class RottingOrangesSolverTraceTests
         }
 
         Assert.Equal(string.Empty, captured.ToString());
+    }
+
+    [Fact]
+    public async Task Trace_ThrowsWhenWriterIsNull()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => RottingOrangesSolver.OrangesRottingAsync([[2, 1]], (TextWriter)null!));
     }
 }
