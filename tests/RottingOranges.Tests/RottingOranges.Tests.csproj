@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\RottingOranges\RottingOranges.csproj" />
+    <ProjectReference Include="..\..\src\RottingOranges.Demo\RottingOranges.Demo.csproj" />
   </ItemGroup>
 
 </Project>
