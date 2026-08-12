@@ -42,7 +42,7 @@ The library never touches `Console` itself — the demo owns all rendering.
 ## Animated demo
 
 Floods a 20×50 field from a randomly placed rotten orange, repainting in place once per
-minute. An eighth of the cells are carved into caves the rot cannot cross:
+minute. A quarter of the cells are carved into a dozen or so caves the rot cannot cross:
 
 ```bash
 dotnet run --project src/RottingOranges.Demo          # random field
@@ -65,11 +65,14 @@ hole outwards from a random seed until it reaches that size — so the carved ar
 whether it lands as speckle (`holeSize: 1`) or as caves (`holeSize: 25`). Holes that grow
 into each other simply merge.
 
-Holes make `-1` a routine outcome rather than a corner case — over 25 seeds, 20 runs
-stranded a handful of oranges and 5 rotted the lot. The demo reports how many were
-stranded, and the final frame shows them still fresh behind their walls. Rarely a cave
-seals off the source itself, which strands nearly everything; raise the rotten count if
-you would rather that never happened.
+Hole *count* falls as density rises, because neighbouring blobs merge on contact — so a
+smaller `holeSize` at higher coverage yields more caves, not fewer. At a quarter coverage,
+`holeSize: 10` settles at roughly a dozen holes averaging about twice that.
+
+At this density the field always fragments: across 25 seeds, none rotted the whole field,
+23 stranded a handful of oranges and 2 sealed off the source itself. The demo reports how
+many were stranded, and the final frame shows them still fresh behind their walls. Lower
+`HoleCells` or raise `RottenCount` if you would rather see the field rot completely.
 
 Frames are held with `await Task.Delay`. When output is redirected the escape sequences
 would be noise, so frames are appended instead and the pause is skipped — which is what

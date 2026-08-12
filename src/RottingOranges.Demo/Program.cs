@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 
+using Humanizer;
+
 using Interviews.RottingOranges;
 using Interviews.RottingOranges.Demo;
 
@@ -8,12 +10,13 @@ const int Rows = 20;
 const int Columns = 50;
 const int RottenCount = 1;
 
-// Roughly an eighth of the field, carved as a handful of sizeable caves rather than
-// speckle, so the rot has to flow around real obstacles.
-const int HoleCells = (Rows * Columns) / 8;
-const int HoleSize = 25;
+// A quarter of the field, carved as many separate caves. Blobs that touch merge, so the
+// nominal size is deliberately well under what a cave ends up being: at this density these
+// settle at roughly a dozen holes averaging twice HoleSize.
+const int HoleCells = (Rows * Columns) / 4;
+const int HoleSize = 10;
 
-TimeSpan frameDelay = TimeSpan.FromMilliseconds(120);
+TimeSpan frameDelay = 120.Milliseconds();
 
 // The field is drawn with emoji, which a console using a legacy code page would mangle.
 Console.OutputEncoding = Encoding.UTF8;
