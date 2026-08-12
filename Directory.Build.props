@@ -2,7 +2,7 @@
 
   <!-- Strict compilation settings applied to every project in the repository. -->
   <PropertyGroup>
-    <Version>0.6.0</Version>
+    <Version>0.6.1</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
