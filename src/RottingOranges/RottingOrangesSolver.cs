@@ -23,6 +23,12 @@ public static class RottingOrangesSolver
     /// A rectangular grid whose cells are the integer values of <see cref="CellState"/>.
     /// The caller's array is not modified.
     /// </param>
+    /// <param name="observer">
+    /// Notified before the first wave and after every wave that rots at least one orange.
+    /// Pass <see langword="null"/> (the default) to run the search without observation, in
+    /// which case it never yields and completes synchronously.
+    /// </param>
+    /// <param name="cancellationToken">Signals that the search should be abandoned.</param>
     /// <returns>
     /// The elapsed minutes, <c>0</c> when the grid starts with no fresh oranges, or
     /// <c>-1</c> when at least one fresh orange is never reached by the rot.
@@ -34,12 +40,29 @@ public static class RottingOrangesSolver
     /// <exception cref="ArgumentOutOfRangeException">
     /// A cell holds a value that is not a defined <see cref="CellState"/>.
     /// </exception>
-    /// <param name="trace">
-    /// When supplied, receives a snapshot of the field before the first wave and after every
-    /// wave of rot. Pass <see langword="null"/> (the default) to run without tracing.
-    /// </param>
-    public static int OrangesRotting(int[][] grid, TextWriter? trace = null) =>
-        SpreadRot(CopyAndValidate(grid), trace);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public static Task<int> OrangesRottingAsync(
+        int[][] grid,
+        IWaveObserver? observer = null,
+        CancellationToken cancellationToken = default) =>
+        SpreadRotAsync(CopyAndValidate(grid), observer, cancellationToken);
+
+    /// <summary>
+    /// Runs the search, writing a snapshot of the field to <paramref name="trace"/> before the
+    /// first wave and after every wave that rots at least one orange.
+    /// </summary>
+    /// <param name="grid">The grid to solve. The caller's array is not modified.</param>
+    /// <param name="trace">The destination for the snapshots.</param>
+    /// <param name="cancellationToken">Signals that the search should be abandoned.</param>
+    /// <returns>The elapsed minutes, or <c>-1</c>. See the primary overload.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="grid"/> or <paramref name="trace"/> is <see langword="null"/>.
+    /// </exception>
+    public static Task<int> OrangesRottingAsync(
+        int[][] grid,
+        TextWriter trace,
+        CancellationToken cancellationToken = default) =>
+        OrangesRottingAsync(grid, new TextWriterWaveObserver(trace), cancellationToken);
 
     /// <summary>
     /// Runs the multi-source breadth-first search over a grid the caller owns exclusively;
@@ -47,10 +70,13 @@ public static class RottingOrangesSolver
     /// </summary>
     /// <remarks>
     /// The queue is drained one whole wave at a time - every cell that rots during the same
-    /// minute - so the elapsed minutes are the number of waves and the field can be rendered
+    /// minute - so the elapsed minutes are the number of waves and the field can be observed
     /// at each step.
     /// </remarks>
-    private static int SpreadRot(CellState[][] cells, TextWriter? trace)
+    private static async Task<int> SpreadRotAsync(
+        CellState[][] cells,
+        IWaveObserver? observer,
+        CancellationToken cancellationToken)
     {
         int rows = cells.Length;
         int columns = cells[0].Length;
@@ -78,10 +104,19 @@ public static class RottingOrangesSolver
         }
 
         int minutes = 0;
-        WriteSnapshot(trace, minutes, freshCount, cells, isInitial: true);
+        GridView field = new(cells);
+
+        if (observer is not null)
+        {
+            await observer
+                .OnWaveAsync(new Wave(minutes, field, freshCount, IsInitial: true), cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         while (frontier.Count > 0 && freshCount > 0)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Fix the wave boundary before spreading: anything enqueued below rots next minute.
             int waveSize = frontier.Count;
             bool anyOrangeRotted = false;
@@ -121,34 +156,16 @@ public static class RottingOrangesSolver
             }
 
             minutes++;
-            WriteSnapshot(trace, minutes, freshCount, cells, isInitial: false);
+
+            if (observer is not null)
+            {
+                await observer
+                    .OnWaveAsync(new Wave(minutes, field, freshCount, IsInitial: false), cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
 
         return freshCount == 0 ? minutes : -1;
-    }
-
-    /// <summary>
-    /// Renders the field to <paramref name="trace"/>, preceded by a heading naming the minute
-    /// and how many fresh oranges remain. Does nothing when no writer was supplied.
-    /// </summary>
-    private static void WriteSnapshot(
-        TextWriter? trace,
-        int minute,
-        int freshCount,
-        CellState[][] cells,
-        bool isInitial)
-    {
-        if (trace is null)
-        {
-            return;
-        }
-
-        string heading = isInitial ? $"Minute {minute} (initial)" : $"Minute {minute}";
-        string remaining = freshCount == 1 ? "1 fresh orange left" : $"{freshCount} fresh oranges left";
-
-        trace.WriteLine($"{heading} - {remaining}:");
-        trace.WriteLine(GridFormatter.Format(cells));
-        trace.WriteLine();
     }
 
     /// <summary>

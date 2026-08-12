@@ -5,21 +5,27 @@ Interview exercises in C# (.NET 10).
 | Project | Contents |
 |---------|----------|
 | `src/RottingOranges` | Multi-source BFS solution to "Rotting Oranges" (LeetCode 994) |
-| `src/RottingOranges.Demo` | Console runner that prints the field after each wave |
+| `src/RottingOranges.Demo` | Animated console runner |
 | `tests/RottingOranges.Tests` | xUnit specification for the above |
 
 ## Watching the rot spread
 
-`OrangesRotting` takes an optional `TextWriter`. Supply one and it renders the field
-before the first wave and after every wave that rots at least one orange:
+The search is asynchronous and reports one `Wave` per minute to an optional
+`IWaveObserver`, which it awaits — so an observer can pace the spread, render it, or
+cancel it:
 
-```bash
-dotnet run --project src/RottingOranges.Demo
+```csharp
+int minutes = await RottingOrangesSolver.OrangesRottingAsync(grid, observer, cancellationToken);
+```
+
+With no observer the search never yields and completes synchronously. Pass a
+`TextWriter` instead to append a snapshot per wave:
+
+```csharp
+int minutes = await RottingOrangesSolver.OrangesRottingAsync(grid, Console.Out);
 ```
 
 ```text
-Legend: ⬛ empty   🍊 fresh   🟤 rotten
-
 Minute 0 (initial) - 6 fresh oranges left:
 🟤🍊🍊
 🍊🍊⬛
@@ -31,8 +37,31 @@ Minute 1 - 4 fresh oranges left:
 ⬛🍊🍊
 ```
 
-The library never touches `Console` itself — pass `Console.Out` to print, a
-`StringWriter` to capture, or nothing at all to stay silent.
+The library never touches `Console` itself — the demo owns all rendering.
+
+## Animated demo
+
+Floods a 10×20 field from a randomly placed rotten orange, repainting in place once per
+minute:
+
+```bash
+dotnet run --project src/RottingOranges.Demo          # random field
+dotnet run --project src/RottingOranges.Demo -- 2024  # reproducible: seeds the field
+```
+
+```text
+Legend: ⬛ empty   🍊 fresh   🟤 rotten
+Minute 1 - 195 fresh oranges left
+
+🍊🍊🍊🟤🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊
+🍊🍊🟤🟤🟤🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊
+🍊🍊🍊🟤🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊🍊
+...
+```
+
+Frames are held with `await Task.Delay`. When output is redirected the escape sequences
+would be noise, so frames are appended instead and the pause is skipped — which is what
+makes the animation pipe-safe.
 
 ## Setup
 

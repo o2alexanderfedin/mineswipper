@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Interviews.RottingOranges;
 
 /// <summary>
@@ -19,7 +21,7 @@ public static class GridFormatter
     /// <summary>The symbol used for <see cref="CellState.Rotten"/>.</summary>
     public const string RottenSymbol = "\U0001f7e4";
 
-    /// <summary>A one-line description of the symbols used by <see cref="Format"/>.</summary>
+    /// <summary>A one-line description of the symbols used by <see cref="Format(GridView)"/>.</summary>
     public static string Legend =>
         $"{EmptySymbol} empty   {FreshSymbol} fresh   {RottenSymbol} rotten";
 
@@ -52,5 +54,50 @@ public static class GridFormatter
         return string.Join(
             Environment.NewLine,
             cells.Select(row => string.Concat(row.Select(ToSymbol))));
+    }
+
+    /// <summary>
+    /// Renders a field, one line per row, without a trailing line break.
+    /// </summary>
+    /// <param name="field">The field to render.</param>
+    /// <returns>The rendered field.</returns>
+    public static string Format(GridView field)
+    {
+        StringBuilder builder = new(field.Rows * field.Columns * 2);
+
+        for (int row = 0; row < field.Rows; row++)
+        {
+            if (row > 0)
+            {
+                builder.Append(Environment.NewLine);
+            }
+
+            for (int column = 0; column < field.Columns; column++)
+            {
+                builder.Append(ToSymbol(field[row, column]));
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Renders a field as separate lines, one per row.
+    /// </summary>
+    /// <param name="field">The field to render.</param>
+    /// <returns>One rendered line per row.</returns>
+    public static IEnumerable<string> FormatLines(GridView field)
+    {
+        for (int row = 0; row < field.Rows; row++)
+        {
+            StringBuilder line = new(field.Columns * 2);
+
+            for (int column = 0; column < field.Columns; column++)
+            {
+                line.Append(ToSymbol(field[row, column]));
+            }
+
+            yield return line.ToString();
+        }
     }
 }
