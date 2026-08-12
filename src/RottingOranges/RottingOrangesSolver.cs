@@ -69,9 +69,10 @@ public static class RottingOrangesSolver
     /// cells are marked <see cref="CellState.Rotten"/> in place as the rot spreads.
     /// </summary>
     /// <remarks>
-    /// The queue is drained one whole wave at a time - every cell that rots during the same
-    /// minute - so the elapsed minutes are the number of waves and the field can be observed
-    /// at each step.
+    /// Two stacks are flipped at each wave boundary: one is drained while everything it rots
+    /// is pushed onto the other. A flip therefore means a whole wave - every cell that rots
+    /// during the same minute - is finished, which is what advances the clock and gives the
+    /// observer a coherent field to render.
     /// </remarks>
     private static async Task<int> SpreadRotAsync(
         CellState[][] cells,
@@ -81,7 +82,8 @@ public static class RottingOrangesSolver
         int rows = cells.Length;
         int columns = cells[0].Length;
 
-        Queue<(int Row, int Column)> frontier = new();
+        Stack<(int Row, int Column)> currentWave = new();
+        Stack<(int Row, int Column)> nextWave = new();
         int freshCount = 0;
 
         for (int row = 0; row < rows; row++)
@@ -91,7 +93,7 @@ public static class RottingOrangesSolver
                 switch (cells[row][column])
                 {
                     case CellState.Rotten:
-                        frontier.Enqueue((row, column));
+                        currentWave.Push((row, column));
                         break;
                     case CellState.Fresh:
                         freshCount++;
@@ -113,17 +115,17 @@ public static class RottingOrangesSolver
                 .ConfigureAwait(false);
         }
 
-        while (frontier.Count > 0 && freshCount > 0)
+        while (currentWave.Count > 0 && freshCount > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Fix the wave boundary before spreading: anything enqueued below rots next minute.
-            int waveSize = frontier.Count;
-            bool anyOrangeRotted = false;
-
-            for (int i = 0; i < waveSize; i++)
+            // Drain this minute's oranges, collecting everything they rot onto the other stack.
+            // Nothing pushed here can be reached before the flip, so the wave cannot smear
+            // into the next one. Order within a wave is irrelevant - every cell in it rots at
+            // the same minute - so a stack serves as well as a queue and pops warmer entries.
+            while (currentWave.Count > 0)
             {
-                (int row, int column) = frontier.Dequeue();
+                (int row, int column) = currentWave.Pop();
 
                 foreach ((int rowOffset, int columnOffset) in NeighbourOffsets)
                 {
@@ -143,14 +145,17 @@ public static class RottingOrangesSolver
 
                     cells[neighbourRow][neighbourColumn] = CellState.Rotten;
                     freshCount--;
-                    anyOrangeRotted = true;
-                    frontier.Enqueue((neighbourRow, neighbourColumn));
+                    nextWave.Push((neighbourRow, neighbourColumn));
                 }
             }
 
-            // A wave that rots nothing leaves the frontier empty, so it is the last one either
-            // way. Stopping here keeps it from counting as a minute or repeating the snapshot.
-            if (!anyOrangeRotted)
+            // The flip: one wave is finished, so one minute has passed. The stack just drained
+            // is empty, which is what makes it reusable as the next wave's collector.
+            (currentWave, nextWave) = (nextWave, currentWave);
+
+            // An empty wave means nothing rotted, so no minute passed and there is nothing new
+            // to show. Whatever fresh oranges are left are out of the rot's reach for good.
+            if (currentWave.Count == 0)
             {
                 break;
             }
