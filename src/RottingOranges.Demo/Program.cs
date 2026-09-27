@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 
 using Humanizer;
@@ -30,13 +29,15 @@ TimeSpan frameDelay = 120.Milliseconds();
 
 // An optional seed makes a run reproducible, and an optional pattern lets the rot cut
 // across corners: `dotnet run -- 1234 diagonal`.
-Random random = args.Length > 0 && int.TryParse(args[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int seed)
-    ? new Random(seed)
-    : Random.Shared;
+if (!DemoOptions.TryParse(args, out DemoOptions? options, out string? error))
+{
+    Console.Error.WriteLine(error);
+    Console.Error.WriteLine(DemoOptions.Usage);
+    return 2;
+}
 
-SpreadPattern pattern = args.Length > 1 && Enum.TryParse(args[1], ignoreCase: true, out SpreadPattern parsed)
-    ? parsed
-    : SpreadPattern.Orthogonal;
+Random random = options.Seed is int seed ? new Random(seed) : Random.Shared;
+SpreadPattern pattern = options.Pattern;
 
 int[][] field = GridFactory.CreateRandomField(Rows, Columns, RottenCount, holeCells, HoleSize, random);
 int orangeCount = (Rows * Columns) - holeCells;
@@ -68,3 +69,5 @@ Console.WriteLine($"Field: {Rows}x{Columns}, {holeCells} cells carved into holes
 Console.WriteLine(minutes < 0
     ? $"Result: -1 ({observer.FreshRemaining} orange(s) sealed off by holes, unreachable by rot)"
     : $"Result: all {orangeCount} oranges rotted in {minutes} minutes");
+
+return 0;
