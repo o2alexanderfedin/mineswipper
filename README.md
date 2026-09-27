@@ -62,6 +62,10 @@ dotnet run --project src/RottingOranges.Demo -- 2024           # reproducible: s
 dotnet run --project src/RottingOranges.Demo -- 2024 diagonal  # let the rot cut corners
 ```
 
+The arguments are positional: a whole-number seed, then `orthogonal` or `diagonal`. Anything
+else - a misspelled pattern, a number in the pattern's place, a pattern without a seed -
+stops the demo with a one-line error and the usage, exit code 2, before the screen is touched.
+
 The same field, both patterns — diagonal reaches past the walls that trap orthogonal rot:
 
 ```text
