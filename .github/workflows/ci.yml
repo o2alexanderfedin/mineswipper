@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**', 'bugfix/**', 'release/**', 'hotfix/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Interviews.slnx
+
+      # Directory.Build.props already sets TreatWarningsAsErrors; -warnaserror keeps it
+      # enforced here even if that property is ever dropped.
+      - name: Build (warnings are errors)
+        run: dotnet build Interviews.slnx --no-restore -warnaserror
+
+      - name: Test
+        run: dotnet test Interviews.slnx --no-build --verbosity normal
+
+      - name: Format check
+        run: dotnet format Interviews.slnx --no-restore --verify-no-changes --verbosity diagnostic
+
+      - name: Demo runs (seeded)
+        run: dotnet run --no-build --project src/RottingOranges.Demo -- 2024
